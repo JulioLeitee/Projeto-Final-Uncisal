@@ -1,0 +1,4 @@
+{
+  "_comentario": "MODELO. O arquivo real chama-se users.json, fica em /etc/projeto-aplicado/ e NUNCA é versionado (ver .gitignore). Gere o hash com: python3 app/auth.py",
+  "aluno": "$argon2id$v=19$m=19456,t=2,p=1$EXEMPLO+NAO+USE+ESTE+HASH$EXEMPLOEXEMPLOEXEMPLOEXEMPLOEXEMPLO"
+}

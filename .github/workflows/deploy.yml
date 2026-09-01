@@ -1,0 +1,158 @@
+name: CI/CD - Verificar e Implantar
+
+# Gatilho: todo `git push origin main` roda a esteira inteira.
+# Pull requests rodam apenas a verificação (nunca implantam).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A03:2025 — Software Supply Chain Failures.
+# Permissões mínimas para o GITHUB_TOKEN: por padrão o Actions concede escrita
+# ampla, o que permitiria a uma ação comprometida alterar o repositório.
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # =========================================================================
+  # ETAPA 1 — Verificação. Se qualquer passo falhar, NÃO existe deploy.
+  # =========================================================================
+  verificar:
+    name: Testes e análise de segurança
+    runs-on: ubuntu-latest
+    steps:
+      # Ações fixadas por SHA, não por tag. Uma tag pode ser movida pelo autor
+      # (ou por quem invadir a conta dele) e passar código novo silenciosamente.
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Configurar Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r app/requirements.txt
+          pip install pytest bandit pip-audit ruff
+
+      - name: Lint (ruff)
+        run: ruff check app/ tests/ --output-format=github
+        continue-on-error: true
+
+      # A03:2025 — vulnerabilidades conhecidas nas dependências.
+      - name: Auditoria de dependências (pip-audit)
+        run: pip-audit -r app/requirements.txt --strict
+
+      # SAST: procura padrões inseguros no próprio código.
+      - name: Análise estática de segurança (bandit)
+        run: bandit -r app/ -ll -f screen
+
+      # Barreira contra vazamento de credenciais (Eixo 2).
+      - name: Verificar que nenhum segredo foi commitado
+        run: |
+          set -e
+          echo "Procurando arquivos que jamais devem estar no repositório..."
+          if git ls-files | grep -E '(^|/)(\.env|users\.json|.*\.pem|.*\.key|id_rsa|id_ed25519)$'; then
+            echo "::error::Arquivo sensível versionado. Remova e revogue a credencial."
+            exit 1
+          fi
+          echo "Procurando segredos hardcoded no código..."
+          if grep -rInE "(SECRET_KEY|PASSWORD|API_KEY|PRIVATE_KEY)\s*=\s*['\"][^'\"]{8,}" \
+               app/ --include='*.py' ; then
+            echo "::error::Possível credencial hardcoded encontrada."
+            exit 1
+          fi
+          echo "OK: nenhum segredo detectado."
+
+      # Os testes provam que as mitigações OWASP continuam de pé.
+      - name: Testes de segurança (pytest)
+        run: pytest tests/ -v
+
+  # =========================================================================
+  # ETAPA 2 — Deploy. Só roda em push na main e só depois da verificação.
+  # =========================================================================
+  implantar:
+    name: Implantar em produção
+    needs: verificar
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: producao
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # A chave privada NUNCA aparece no YAML nem no log. Vem dos Secrets do
+      # repositório e é gravada com permissão 0600 num diretório efêmero do
+      # runner, que é destruído ao fim do job.
+      - name: Preparar chave SSH a partir dos Secrets
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Fixar a chave do host impede man-in-the-middle no deploy.
+          # Gere com: ssh-keyscan -H <IP>
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Enviar aplicação para o servidor
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          rsync -az --delete \
+            --exclude '__pycache__' \
+            --exclude '*.pyc' \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            app/ "${SERVER_USER}@${SERVER_HOST}:/opt/projeto-aplicado/app/"
+
+      - name: Atualizar dependências e reiniciar o serviço
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "${SERVER_USER}@${SERVER_HOST}" bash -eu <<'REMOTO'
+            /opt/projeto-aplicado/.venv/bin/pip install --quiet \
+              -r /opt/projeto-aplicado/app/requirements.txt
+            sudo /usr/bin/systemctl restart projeto-aplicado
+            sleep 3
+            sudo /usr/bin/systemctl is-active projeto-aplicado
+          REMOTO
+
+      # Verificação pós-deploy: se a aplicação não responde, o job falha e o
+      # histórico do Actions registra a implantação como quebrada.
+      - name: Validar implantação (smoke test)
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        run: |
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "https://${SERVER_HOST}/health" || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "OK: /health respondeu 200."
+              break
+            fi
+            echo "tentativa $i: HTTP $code — aguardando..."
+            sleep 5
+            [ "$i" = "5" ] && { echo "::error::aplicação não respondeu após o deploy"; exit 1; }
+          done
+
+          echo "Conferindo redirecionamento HTTP -> HTTPS..."
+          redirect=$(curl -s -o /dev/null -w '%{http_code}' "http://${SERVER_HOST}/")
+          [ "$redirect" = "301" ] || { echo "::error::redirect ausente (HTTP $redirect)"; exit 1; }
+          echo "OK: 301 para HTTPS."
+
+      - name: Limpar credenciais do runner
+        if: always()
+        run: shred -u ~/.ssh/deploy_key 2>/dev/null || rm -f ~/.ssh/deploy_key

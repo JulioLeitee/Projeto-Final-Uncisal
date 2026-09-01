@@ -1,0 +1,18 @@
+# A03:2025 — Software Supply Chain Failures
+# Versões FIXADAS (==). Nunca use faixas abertas em produção: um pacote
+# comprometido publicado como "patch" entraria no deploy automaticamente.
+# O pipeline roda `pip-audit` a cada push e o Dependabot abre PR de atualização.
+
+Flask==3.1.3
+Werkzeug==3.1.6
+Jinja2==3.1.6
+itsdangerous==2.2.0
+click==8.3.3
+blinker==1.9.0
+MarkupSafe==3.0.2
+argon2-cffi==25.1.0
+argon2-cffi-bindings==21.2.0
+cffi==1.17.1
+pycparser==2.22
+gunicorn==23.0.0
+packaging==24.2

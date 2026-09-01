@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Erro {{ code }} &middot; Projeto Aplicado{% endblock %}
+
+{% block content %}
+<h1>Erro {{ code }}</h1>
+<p class="sub">{{ message }}</p>
+<p class="note">
+  Nenhum detalhe técnico é exibido: stack trace, caminho de arquivo e versão
+  do framework ficam apenas no log do servidor (A10:2025).
+</p>
+<p><a href="{{ url_for('login') }}">Voltar ao início</a></p>
+{% endblock %}

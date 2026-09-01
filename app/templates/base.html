@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>{% block title %}Projeto Aplicado{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="card">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="foot">
+    Projeto Aplicado &middot; Práticas de Mercado &middot; Secure by Design
+  </footer>
+</body>
+</html>

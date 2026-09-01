@@ -1,0 +1,27 @@
+# /etc/fail2ban/jail.d/sshd.local
+#
+# Eixo 1 — exigência do escopo: porta 22 protegida por Fail2Ban com
+# TOLERÂNCIA DE 4 ERROS e BANIMENTO DE 24 HORAS.
+#
+#   maxretry = 4       -> banimento no 5º erro (4 tentativas toleradas)
+#   bantime  = 86400   -> 24 horas em segundos
+#
+# Ative com:  sudo systemctl enable --now fail2ban
+# Confira com: sudo fail2ban-client status sshd
+
+[DEFAULT]
+# Nunca se auto-banir a partir da própria máquina.
+ignoreip = 127.0.0.1/8 ::1
+
+# Ubuntu 24.04+ usa journald como backend padrão (não há mais /var/log/auth.log
+# preenchido por rsyslog em instalação mínima).
+backend = systemd
+
+[sshd]
+enabled  = true
+port     = 22
+filter   = sshd
+maxretry = 4
+findtime = 600
+bantime  = 86400
+banaction = nftables-multiport

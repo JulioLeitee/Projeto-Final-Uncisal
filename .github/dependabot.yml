@@ -1,0 +1,20 @@
+# A03:2025 — Software Supply Chain Failures.
+# Dependências fixadas por versão só ficam seguras se alguém as atualizar.
+# O Dependabot abre o PR; o pipeline (pip-audit + pytest) decide se ele passa.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/app"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencias", "seguranca"]
+    commit-message:
+      prefix: "deps"
+
+  # As próprias Actions são dependências — e rodam com acesso aos Secrets.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["ci", "seguranca"]

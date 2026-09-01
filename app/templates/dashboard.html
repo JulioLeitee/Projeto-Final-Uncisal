@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Área interna &middot; Projeto Aplicado{% endblock %}
+
+{% block content %}
+<h1>Área interna</h1>
+<p class="sub">Sessão autenticada como <strong>{{ user }}</strong>.</p>
+
+<dl class="kv">
+  <dt>Usuário</dt><dd>{{ user }}</dd>
+  <dt>Autenticado em (UTC)</dt><dd>{{ login_at }}</dd>
+  <dt>Expiração da sessão</dt><dd>{{ session_minutes }} minutos de inatividade</dd>
+</dl>
+
+<p class="note">
+  Esta página só é servida quando o servidor confirma a sessão. Abrir
+  <code>/dashboard</code> sem autenticar devolve um redirecionamento para
+  a tela de login — não há atalho por URL, cookie ou parâmetro.
+</p>
+
+<form method="post" action="{{ url_for('logout') }}">
+  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+  <button type="submit" class="secondary">Sair</button>
+</form>
+{% endblock %}
