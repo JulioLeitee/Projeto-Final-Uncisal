@@ -7,7 +7,7 @@ ambiente de desenvolvimento até a produção em nuvem.
 | | |
 |---|---|
 | **Aplicação em produção** | `https://SEU_IP_PUBLICO/` |
-| **Repositório** | `https://github.com/SEU_USUARIO/SEU_REPO` |
+| **Repositório** | `https://github.com/JulioLeitee/Projeto-Final-Uncisal` |
 | **Nuvem** | Oracle Cloud Infrastructure — *Always Free* |
 | **Sistema operacional** | Ubuntu Server 26.04 LTS (OpenSSL 3.5) |
 | **Servidor web** | Nginx 1.28 (proxy reverso + terminação TLS) |
@@ -265,7 +265,26 @@ O que na configuração produz a nota A:
 *OCSP stapling não é habilitado de propósito*: a Let's Encrypt desligou seus
 respondedores OCSP em 2025, e a diretiva geraria erro de resolução a cada reload.
 
-Teste: `https://www.ssllabs.com/ssltest/analyze.html?d=SEU_IP&latest`
+#### Ferramenta de verificação
+
+O escopo v1.0 indicava o **Qualys SSL Labs**, que aceita apenas domínios
+registrados — não endereços IP. A limitação foi reportada ao professor, que
+reconheceu a inconsistência e indicará outra ferramenta.
+
+A verificação aqui é feita por `deploy/validar-tls.sh`, que cobre as três vias:
+
+| Via | Ferramenta | Observação |
+|---|---|---|
+| Nota | **testssl.sh** | Implementa o próprio *SSL Server Rating Guide* do SSL Labs e **aceita endereço IP**. Devolve `Overall Grade`. |
+| PQC | `openssl s_client` | Prova direta do grupo negociado. |
+| Reserva | hostname espelho `sslip.io` | Caso o SSL Labs siga exigido: mesmo servidor, mesma configuração TLS. |
+
+Duas observações levantadas ao testar o `testssl.sh` e tratadas no script:
+ele exige `hexdump` e `dig` instalados — e exige `dig` **mesmo quando o alvo já
+é um IP**, abortando sem eles; e ao escanear um IP puro emite o aviso
+*"Target is not a server name"*, o que pode limitar a nota por cadeia de
+confiança. Com o certificado da Let's Encrypt emitido **para o IP** isso valida
+normalmente; o hostname espelho fica como caminho alternativo.
 
 ---
 
@@ -357,8 +376,8 @@ que assistentes treinados em dados anteriores a 2026 tendem a errar.
 ### Servidor
 
 ```bash
-git clone https://github.com/SEU_USUARIO/SEU_REPO.git
-cd SEU_REPO
+git clone https://github.com/JulioLeitee/Projeto-Final-Uncisal.git
+cd Projeto-Final-Uncisal
 sudo bash deploy/setup-server.sh SEU_IP_PUBLICO seu-email@exemplo.com
 ```
 

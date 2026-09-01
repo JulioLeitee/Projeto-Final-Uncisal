@@ -72,8 +72,8 @@ openssl version         # deve ser 3.5 ou superior
 
 ```bash
 sudo apt update && sudo apt install -y git
-git clone https://github.com/SEU_USUARIO/SEU_REPO.git
-cd SEU_REPO
+git clone https://github.com/JulioLeitee/Projeto-Final-Uncisal.git
+cd Projeto-Final-Uncisal
 sudo bash deploy/setup-server.sh SEU_IP_PUBLICO seu-email@exemplo.com
 ```
 
@@ -178,7 +178,7 @@ git init && git branch -M main
 git add .gitignore && git commit -m "chore: gitignore antes de tudo"
 git status                       # CONFIRA: nada de .env, users.json, *.pem
 git add . && git commit -m "feat: aplicacao, infra e pipeline"
-git remote add origin git@github.com:SEU_USUARIO/SEU_REPO.git
+git remote add origin git@github.com:JulioLeitee/Projeto-Final-Uncisal.git
 git push -u origin main
 ```
 
