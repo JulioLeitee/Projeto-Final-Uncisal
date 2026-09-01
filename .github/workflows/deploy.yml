@@ -30,7 +30,7 @@ jobs:
       # Ações fixadas por SHA, não por tag. Uma tag pode ser movida pelo autor
       # (ou por quem invadir a conta dele) e passar código novo silenciosamente.
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configurar Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
@@ -87,7 +87,7 @@ jobs:
     environment: producao
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # A chave privada NUNCA aparece no YAML nem no log. Vem dos Secrets do
       # repositório e é gravada com permissão 0600 num diretório efêmero do
