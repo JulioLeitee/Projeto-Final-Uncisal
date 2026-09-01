@@ -15,4 +15,4 @@ argon2-cffi-bindings==21.2.0
 cffi==1.17.1
 pycparser==2.22
 gunicorn==23.0.0
-packaging==24.2
+packaging==26.3
