@@ -249,7 +249,7 @@ openssl s_client -connect SEU_IP:443 -tls1_3 -groups X25519MLKEM768 </dev/null \
 # esperado: Negotiated TLS1.3 group: X25519MLKEM768
 ```
 
-### 3.6 Nota A no Qualys SSL Labs
+### 3.6 Qualidade do TLS (configuração e verificação)
 
 O que na configuração produz a nota A:
 
@@ -267,24 +267,27 @@ respondedores OCSP em 2025, e a diretiva geraria erro de resolução a cada relo
 
 #### Ferramenta de verificação
 
-O escopo v1.0 indicava o **Qualys SSL Labs**, que aceita apenas domínios
-registrados — não endereços IP. A limitação foi reportada ao professor, que
-reconheceu a inconsistência e indicará outra ferramenta.
+O escopo inicial indicava o **Qualys SSL Labs**, que aceita apenas domínios
+registrados, não endereços IP. O escopo atualizado define, para entrega por IP,
+dois verificadores públicos, ambos executados contra `163.176.83.64`:
 
-A verificação aqui é feita por `deploy/validar-tls.sh`, que cobre as três vias:
-
-| Via | Ferramenta | Observação |
+| Verificador | O que comprova | Resultado (22/10/2026) |
 |---|---|---|
-| Nota | **testssl.sh** | Implementa o próprio *SSL Server Rating Guide* do SSL Labs e **aceita endereço IP**. Devolve `Overall Grade`. |
-| PQC | `openssl s_client` | Prova direta do grupo negociado. |
-| Reserva | hostname espelho `sslip.io` | Caso o SSL Labs siga exigido: mesmo servidor, mesma configuração TLS. |
+| **ssl.org** — SSL Certificate Checker | Certificado confiável e bem assinado | *Certificate Trusted:* **Yes** · *Good signature* · *Good key* (ECDSA P-384, SHA-384) · cadeia válida e completa · TLS 1.2 e 1.3 · Certificate Transparency conforme |
+| **DigiCert** — TLS quantum readiness check | TLS 1.3 e troca de chaves pós-quântica | **Pass** nos 2 checks: *TLS 1.3 enabled* e *Quantum-safe key exchange* |
 
-Duas observações levantadas ao testar o `testssl.sh` e tratadas no script:
-ele exige `hexdump` e `dig` instalados — e exige `dig` **mesmo quando o alvo já
-é um IP**, abortando sem eles; e ao escanear um IP puro emite o aviso
-*"Target is not a server name"*, o que pode limitar a nota por cadeia de
-confiança. Com o certificado da Let's Encrypt emitido **para o IP** isso valida
-normalmente; o hostname espelho fica como caminho alternativo.
+Prova direta do grupo negociado, na própria máquina: `openssl s_client` (seção 3.5).
+Para quem entregar por **domínio**, o Qualys SSL Labs passa a valer e a
+configuração acima é a que produz a nota A. O script `deploy/validar-tls.sh`
+reúne evidências complementares (testssl.sh, openssl e hostname espelho `sslip.io`).
+
+#### Renovação automática do certificado
+
+Certificados de IP da Let's Encrypt têm validade de **6 dias**. A renovação é
+automática: o timer `snap.certbot.renew.timer` roda duas vezes por dia, o
+autenticador é `webroot` e o `renew_hook = systemctl reload nginx` carrega o
+certificado novo sem interromper o site. Verificado com `sudo certbot renew --dry-run`
+(*all simulated renewals succeeded*).
 
 ---
 
@@ -441,4 +444,6 @@ mais do que fingir que ele não existe.
 - [Let's Encrypt — Six-Day and IP Address Certificates Available in Certbot](https://letsencrypt.org/2026/03/11/shorter-certs-certbot)
 - [Let's Encrypt — Certificate Profiles](https://letsencrypt.org/docs/profiles/)
 - [NGINX — Post-Quantum Cryptography support](https://blog.nginx.org/blog/pqc-nginx)
-- [Qualys SSL Labs — SSL Server Test](https://www.ssllabs.com/ssltest/)
+- [Qualys SSL Labs — SSL Server Test](https://www.ssllabs.com/ssltest/) (para entrega por domínio)
+- [DigiCert — TLS quantum readiness check](https://www.digicert.com/)
+- [SSL.org — SSL Certificate Checker](https://www.ssl.org/)
