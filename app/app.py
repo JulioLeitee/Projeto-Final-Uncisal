@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from auth import UserStore
 from flask import Flask, redirect, render_template, request, session, url_for
@@ -109,7 +109,10 @@ def login():
     if session.get("user"):
         return redirect(url_for("dashboard"))
 
-    if request.method == "GET":
+    # Qualquer método que não seja POST (GET, HEAD, OPTIONS) só exibe o
+    # formulário. HEAD NÃO pode cair no ramo de autenticação: contaria como
+    # tentativa falha e travaria o IP no throttle.
+    if request.method != "POST":
         return render_template("login.html", error=None)
 
     ip = client_ip()
@@ -146,7 +149,7 @@ def login():
     session.clear()
     session.permanent = True
     session["user"] = username
-    session["login_at"] = datetime.now(timezone.utc).isoformat()
+    session["login_at"] = datetime.now(UTC).isoformat()
     issue_csrf_token()  # novo token CSRF para a nova sessão
 
     throttle.reset(ip)
@@ -164,6 +167,10 @@ def dashboard():
     campo escondido ou cookie de papel que conceda acesso.
     """
     login_at = session.get("login_at", "")
+    try:
+        login_at = datetime.fromisoformat(login_at).strftime("%d/%m/%Y %H:%M:%S UTC")
+    except ValueError:
+        pass  # mantém o texto original se o valor da sessão não for uma data
     return render_template(
         "dashboard.html",
         user=session["user"],

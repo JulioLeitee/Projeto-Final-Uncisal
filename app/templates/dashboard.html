@@ -1,24 +1,104 @@
 {% extends "base.html" %}
-{% block title %}Área interna &middot; Projeto Aplicado{% endblock %}
+{% block title %}Painel de segurança &middot; Projeto Aplicado{% endblock %}
+{% block cardclass %}wide{% endblock %}
 
 {% block content %}
-<h1>Área interna</h1>
-<p class="sub">Sessão autenticada como <strong>{{ user }}</strong>.</p>
+<header class="topbar">
+  <div>
+    <p class="eyebrow">Área interna</p>
+    <h1>Painel de segurança</h1>
+    <p class="sub">Sessão autenticada como <strong>{{ user }}</strong>.</p>
+  </div>
+  <form method="post" action="{{ url_for('logout') }}" class="logout">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <button type="submit" class="secondary">Sair</button>
+  </form>
+</header>
 
-<dl class="kv">
-  <dt>Usuário</dt><dd>{{ user }}</dd>
-  <dt>Autenticado em (UTC)</dt><dd>{{ login_at }}</dd>
-  <dt>Expiração da sessão</dt><dd>{{ session_minutes }} minutos de inatividade</dd>
-</dl>
+<section>
+  <h2>Sua sessão</h2>
+  <dl class="kv">
+    <dt>Usuário</dt><dd>{{ user }}</dd>
+    <dt>Autenticado em</dt><dd>{{ login_at }}</dd>
+    <dt>Expira após</dt><dd>{{ session_minutes }} minutos de inatividade</dd>
+  </dl>
+  <p class="note">
+    Esta página só é servida quando o servidor confirma a sessão. Abrir
+    <code>/dashboard</code> sem autenticar devolve um redirecionamento para
+    a tela de login — não há atalho por URL, cookie ou parâmetro.
+  </p>
+</section>
 
-<p class="note">
-  Esta página só é servida quando o servidor confirma a sessão. Abrir
-  <code>/dashboard</code> sem autenticar devolve um redirecionamento para
-  a tela de login — não há atalho por URL, cookie ou parâmetro.
-</p>
+<section>
+  <h2>OWASP Top 10:2025 — controles implementados</h2>
+  <ul class="controls">
+    <li>
+      <span class="tag">A01</span>
+      <div>
+        <strong>Broken Access Control</strong>
+        <p>Rotas internas exigem sessão validada no servidor; logout só por POST com token CSRF.</p>
+        <code>app/security.py</code>
+      </div>
+    </li>
+    <li>
+      <span class="tag">A02</span>
+      <div>
+        <strong>Security Misconfiguration</strong>
+        <p>Não inicia sem chave secreta; cookie Secure, HttpOnly e SameSite; CSP restritiva e demais cabeçalhos de segurança.</p>
+        <code>app/app.py</code> <code>app/security.py</code>
+      </div>
+    </li>
+    <li>
+      <span class="tag">A03</span>
+      <div>
+        <strong>Software Supply Chain Failures</strong>
+        <p>Dependências com versão fixa, auditadas com pip-audit a cada push e atualizadas via Dependabot.</p>
+        <code>app/requirements.txt</code> <code>.github/workflows/deploy.yml</code>
+      </div>
+    </li>
+    <li>
+      <span class="tag">A05</span>
+      <div>
+        <strong>Injection</strong>
+        <p>Entradas validadas por lista de caracteres permitidos; templates com escape automático; logs sem quebra de linha.</p>
+        <code>app/security.py</code>
+      </div>
+    </li>
+    <li>
+      <span class="tag">A07</span>
+      <div>
+        <strong>Authentication Failures</strong>
+        <p>Senhas com Argon2id; mensagem de erro genérica; bloqueio após 5 tentativas; nova sessão a cada login.</p>
+        <code>app/auth.py</code> <code>app/app.py</code>
+      </div>
+    </li>
+  </ul>
+</section>
 
-<form method="post" action="{{ url_for('logout') }}">
-  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
-  <button type="submit" class="secondary">Sair</button>
-</form>
+<section>
+  <h2>Infraestrutura</h2>
+  <ul class="controls">
+    <li>
+      <span class="tag">TLS</span>
+      <div>
+        <strong>HTTPS com redirecionamento</strong>
+        <p>Todo acesso HTTP é redirecionado (301) para HTTPS; certificado Let's Encrypt emitido para o IP; HSTS ativo.</p>
+      </div>
+    </li>
+    <li>
+      <span class="tag">PQC</span>
+      <div>
+        <strong>Criptografia pós-quântica</strong>
+        <p>Troca de chaves híbrida X25519MLKEM768 negociada em TLS 1.3.</p>
+      </div>
+    </li>
+    <li>
+      <span class="tag">SSH</span>
+      <div>
+        <strong>Acesso remoto protegido</strong>
+        <p>SSH somente por chave, sem senha; Fail2Ban bane por 24 horas após 4 erros.</p>
+      </div>
+    </li>
+  </ul>
+</section>
 {% endblock %}

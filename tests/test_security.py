@@ -83,6 +83,16 @@ def test_senha_errada_rejeitada(client):
     assert r.status_code == 401
 
 
+def test_head_no_login_nao_conta_como_tentativa(client):
+    """HEAD /login (curl -I, verificadores de site/TLS) não pode virar falha de login."""
+    for _ in range(10):
+        assert client.head("/login").status_code == 200
+    token = _csrf(client)
+    r = client.post("/login", data={"username": "aluno", "password": "SenhaForte#2026",
+                                    "_csrf": token})
+    assert r.status_code == 302  # login válido segue funcionando, sem 429
+
+
 def test_erro_e_generico_nao_enumera_usuario(client):
     token = _csrf(client)
     inexistente = client.post("/login", data={"username": "ninguem", "password": "x",

@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <main class="card">
+  <main class="card {% block cardclass %}{% endblock %}">
     {% block content %}{% endblock %}
   </main>
   <footer class="foot">
