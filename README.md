@@ -1,4 +1,4 @@
-# Projeto Aplicado — Práticas de Mercado
+# Projeto Aplicado
 
 Aplicação web autenticada, construída e implantada segundo os princípios
 **Secure by Design** e **Secure by Default**, com esteira automatizada do
