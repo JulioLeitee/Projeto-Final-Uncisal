@@ -57,7 +57,9 @@ def test_dashboard_liberado_com_sessao(client):
                                 "_csrf": token})
     r = client.get("/dashboard")
     assert r.status_code == 200
-    assert "Área interna" in r.get_data(as_text=True)
+    html = r.get_data(as_text=True)
+    assert "Nós vimos o invisível." in html
+    assert 'action="/logout"' in html  # logout por POST continua na página
 
 
 def test_post_sem_csrf_e_rejeitado(client):
@@ -136,6 +138,28 @@ def test_csp_sem_unsafe_inline(client):
     csp = client.get("/login").headers["Content-Security-Policy"]
     assert "unsafe-inline" not in csp
     assert "frame-ancestors 'none'" in csp
+    assert "unsafe-eval" not in csp
+    # Scripts e mídia só do próprio servidor: nenhum host externo liberado.
+    for diretiva in csp.split(";"):
+        fontes = diretiva.split()[1:]
+        assert all(f in ("'self'", "'none'") for f in fontes), diretiva
+
+
+def test_pagina_interna_sem_codigo_inline(client):
+    """A CSP bloquearia script/estilo inline; garantimos que o template não depende disso."""
+    token = _csrf(client)
+    client.post("/login", data={"username": "aluno", "password": "SenhaForte#2026",
+                                "_csrf": token})
+    html = client.get("/dashboard").get_data(as_text=True)
+    assert re.search(r"<script(?![^>]*\bsrc=)[^>]*>", html) is None  # todo <script> tem src
+    assert re.search(r"\sstyle\s*=", html) is None                  # nenhum style=""
+    assert re.search(r"\son[a-z]+\s*=", html) is None               # nenhum onclick="" etc.
+    assert "://" not in re.sub(r'xmlns="[^"]*"', "", html)          # nenhum recurso externo
+
+
+def test_landing_page_tambem_exige_login(client):
+    r = client.get("/dashboard")
+    assert r.status_code == 302 and "/login" in r.headers["Location"]
 
 
 def test_app_nao_sobe_sem_secret_key(tmp_path, monkeypatch):

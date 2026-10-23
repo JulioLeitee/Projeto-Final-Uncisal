@@ -1,104 +1,168 @@
 {% extends "base.html" %}
-{% block title %}Painel de segurança &middot; Projeto Aplicado{% endblock %}
-{% block cardclass %}wide{% endblock %}
+{#
+  Página interna (rota /dashboard, protegida por @login_required em app.py).
+  Segurança (CSP sem 'unsafe-inline'):
+    - nenhum <script> inline, nenhum atributo style="", nenhum on*="";
+    - todo CSS em /static/m87/m87.css e todo JS em /static/m87/m87.js;
+    - mídia (foto, vídeo e mapa) servida do próprio servidor, sem CDN.
+  Créditos de imagem e vídeo: EHT Collaboration / ESO, licença CC BY 4.0.
+#}
+{% block title %}A primeira foto de um buraco negro &middot; Projeto Aplicado{% endblock %}
 
-{% block content %}
-<header class="topbar">
-  <div>
-    <p class="eyebrow">Área interna</p>
-    <h1>Painel de segurança</h1>
-    <p class="sub">Sessão autenticada como <strong>{{ user }}</strong>.</p>
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='m87/m87.css') }}">
+<script src="{{ url_for('static', filename='m87/m87.js') }}" defer></script>
+{% endblock %}
+
+{% macro logout_form(extra_class="") %}
+<form method="post" action="{{ url_for('logout') }}" class="logout {{ extra_class }}">
+  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+  <button type="submit" class="btn">Sair</button>
+</form>
+{% endmacro %}
+
+{% block body %}
+<header id="hero" class="hero">
+  <canvas id="bh" aria-hidden="true"></canvas>
+  <div class="top">{{ logout_form() }}</div>
+  <div class="hero-txt">
+    <h1>Nós vimos o invisível.</h1>
+    <p>10 de abril de 2019: a primeira imagem de um buraco negro. <span class="hint">Mova o mouse.</span></p>
   </div>
-  <form method="post" action="{{ url_for('logout') }}" class="logout">
-    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
-    <button type="submit" class="secondary">Sair</button>
-  </form>
+  <a class="scroll" href="#foto" aria-label="Continuar">↓</a>
 </header>
 
-<section>
-  <h2>Sua sessão</h2>
-  <dl class="kv">
-    <dt>Usuário</dt><dd>{{ user }}</dd>
-    <dt>Autenticado em</dt><dd>{{ login_at }}</dd>
-    <dt>Expira após</dt><dd>{{ session_minutes }} minutos de inatividade</dd>
-  </dl>
-  <p class="note">
-    Esta página só é servida quando o servidor confirma a sessão. Abrir
-    <code>/dashboard</code> sem autenticar devolve um redirecionamento para
-    a tela de login — não há atalho por URL, cookie ou parâmetro.
-  </p>
-</section>
+<main>
+  <section id="foto" class="photo">
+    <figure class="frame">
+      <canvas id="reveal" width="600" height="600"
+              data-src="{{ url_for('static', filename='m87/media/m87.webp') }}"
+              role="img" aria-label="Imagem da M87* obtida pelo Event Horizon Telescope: um anel brilhante em volta de uma sombra escura"></canvas>
+      <noscript><img src="{{ url_for('static', filename='m87/media/m87.webp') }}" alt="Imagem da M87* obtida pelo Event Horizon Telescope"></noscript>
+      <figcaption class="cap">M87* · EHT Collaboration (CC BY 4.0)</figcaption>
+    </figure>
+    <div>
+      <span class="tag">01 · A imagem</span>
+      <h2>Um anel de luz em volta de uma sombra</h2>
+      <p class="lead">O anel é gás aquecido a bilhões de graus, girando em volta do buraco negro a uma
+        fração considerável da velocidade da luz. O centro escuro é a <strong>sombra</strong>: a região de
+        onde nenhuma luz consegue escapar até nós.</p>
+      <p class="lead">O buraco negro fica no centro da galáxia <strong>Messier 87</strong>, a cerca de
+        55 milhões de anos-luz, e tem aproximadamente <strong>6,5 bilhões de vezes a massa do Sol</strong>.</p>
+      <p class="progress" id="prog" aria-live="polite">reconstruindo os dados…</p>
+    </div>
+  </section>
 
-<section>
-  <h2>OWASP Top 10:2025 — controles implementados</h2>
-  <ul class="controls">
-    <li>
-      <span class="tag">A01</span>
-      <div>
-        <strong>Broken Access Control</strong>
-        <p>Rotas internas exigem sessão validada no servidor; logout só por POST com token CSRF.</p>
-        <code>app/security.py</code>
-      </div>
-    </li>
-    <li>
-      <span class="tag">A02</span>
-      <div>
-        <strong>Security Misconfiguration</strong>
-        <p>Não inicia sem chave secreta; cookie Secure, HttpOnly e SameSite; CSP restritiva e demais cabeçalhos de segurança.</p>
-        <code>app/app.py</code> <code>app/security.py</code>
-      </div>
-    </li>
-    <li>
-      <span class="tag">A03</span>
-      <div>
-        <strong>Software Supply Chain Failures</strong>
-        <p>Dependências com versão fixa, auditadas com pip-audit a cada push e atualizadas via Dependabot.</p>
-        <code>app/requirements.txt</code> <code>.github/workflows/deploy.yml</code>
-      </div>
-    </li>
-    <li>
-      <span class="tag">A05</span>
-      <div>
-        <strong>Injection</strong>
-        <p>Entradas validadas por lista de caracteres permitidos; templates com escape automático; logs sem quebra de linha.</p>
-        <code>app/security.py</code>
-      </div>
-    </li>
-    <li>
-      <span class="tag">A07</span>
-      <div>
-        <strong>Authentication Failures</strong>
-        <p>Senhas com Argon2id; mensagem de erro genérica; bloqueio após 5 tentativas; nova sessão a cada login.</p>
-        <code>app/auth.py</code> <code>app/app.py</code>
-      </div>
-    </li>
-  </ul>
-</section>
+  <section id="video">
+    <span class="tag">02 · Simulação</span>
+    <h2>Um ano na vida da M87*</h2>
+    <p class="lead">Simulação do Event Horizon Telescope de como o gás em volta do buraco negro muda ao longo de
+      quase um ano. As versões “blurred” (desfocadas) mostram o que os telescópios conseguem enxergar: um anel que
+      muda de brilho, mas mantém o mesmo tamanho, porque o tamanho da sombra depende só da massa.</p>
+    <figure class="video">
+      <video controls preload="none" playsinline muted loop
+             aria-label="Simulação da M87* ao longo de um ano"
+             poster="{{ url_for('static', filename='m87/media/m87-simulacao-poster.webp') }}">
+        <source src="{{ url_for('static', filename='m87/media/m87-simulacao.mp4') }}" type="video/mp4">
+        Seu navegador não reproduz vídeo MP4.
+      </video>
+      <figcaption class="cap">Simulação: EHT Collaboration</figcaption>
+    </figure>
+  </section>
 
-<section>
-  <h2>Infraestrutura</h2>
-  <ul class="controls">
-    <li>
-      <span class="tag">TLS</span>
+  <section id="historia">
+    <span class="tag">03 · Linha do tempo</span>
+    <h2>Um século entre a equação e a foto</h2>
+    <ol class="tl">
+      <li class="ev"><b>1915</b><h3>Relatividade Geral</h3>
+        <p>Albert Einstein descreve a gravidade como a curvatura do espaço-tempo causada pela massa e pela energia.</p></li>
+      <li class="ev"><b>1916</b><h3>A solução de Schwarzschild</h3>
+        <p>Karl Schwarzschild encontra a primeira solução exata das equações de Einstein. Ela define um raio
+          crítico, o horizonte de eventos, do qual nada escapa.</p></li>
+      <li class="ev"><b>Anos 1960</b><h3>Nasce o nome “buraco negro”</h3>
+        <p>O termo se populariza a partir de 1967, sobretudo com o físico John Wheeler.</p></li>
+      <li class="ev"><b>2009</b><h3>Forma-se o Event Horizon Telescope</h3>
+        <p>Radiotelescópios de vários continentes se unem para funcionar como uma única antena virtual
+          do tamanho da Terra.</p></li>
+      <li class="ev"><b>Abril de 2017</b><h3>A grande observação</h3>
+        <p>Oito observatórios em seis locais apontam ao mesmo tempo para a M87, sincronizados por relógios atômicos.</p></li>
+      <li class="ev"><b>10 de abril de 2019</b><h3>O anúncio</h3>
+        <p>A primeira imagem de um buraco negro é divulgada em coletivas simultâneas ao redor do mundo.</p></li>
+      <li class="ev"><b>Março de 2021</b><h3>A luz polarizada</h3>
+        <p>Uma nova imagem da M87* em luz polarizada revela a estrutura dos campos magnéticos perto da borda do buraco negro.</p>
+        <figure class="ev-fig">
+          <img src="{{ url_for('static', filename='m87/media/m87-polarizada.webp') }}" width="1000" height="1000" loading="lazy"
+               alt="M87* em luz polarizada: linhas finas sobre o anel mostram a orientação do campo magnético">
+          <figcaption class="cap">EHT Collaboration (CC BY 4.0)</figcaption>
+        </figure></li>
+      <li class="ev"><b>12 de maio de 2022</b><h3>Sagitário A*</h3>
+        <p>A colaboração divulga a primeira imagem do buraco negro do centro da nossa própria galáxia, a Via Láctea.</p></li>
+      <li class="ev"><b>16 de setembro de 2025</b><h3>O campo magnético muda de sentido</h3>
+        <p>Comparando 2017, 2018 e 2021, a colaboração mostra que o anel mantém o mesmo tamanho, como prevê a
+          Relatividade Geral, mas o padrão de polarização se inverte: gira num sentido em 2017, quase se equilibra
+          em 2018 e gira no sentido oposto em 2021.</p>
+        <div class="ev-strip">
+          <figure><img src="{{ url_for('static', filename='m87/media/m87-pol-2017.webp') }}" width="700" height="700" loading="lazy" alt="M87* polarizada em 2017"><figcaption class="cap">2017</figcaption></figure>
+          <figure><img src="{{ url_for('static', filename='m87/media/m87-pol-2018.webp') }}" width="700" height="700" loading="lazy" alt="M87* polarizada em 2018"><figcaption class="cap">2018</figcaption></figure>
+          <figure><img src="{{ url_for('static', filename='m87/media/m87-pol-2021.webp') }}" width="700" height="700" loading="lazy" alt="M87* polarizada em 2021"><figcaption class="cap">2021</figcaption></figure>
+        </div>
+        <p class="cap">Imagens: EHT Collaboration</p></li>
+    </ol>
+  </section>
+
+  <section id="telescopio">
+    <span class="tag">04 · Interferometria (VLBI)</span>
+    <h2>Um telescópio do tamanho da Terra</h2>
+    <p class="lead">Nenhum prato isolado teria nitidez suficiente. Com a <strong>interferometria de base muito longa
+      (VLBI)</strong>, antenas distantes gravam o mesmo sinal, em 1,3 mm de comprimento de onda, com marcação de tempo
+      por relógios atômicos. Depois, os dados são combinados. Quanto maior a distância entre as antenas, maior a nitidez.
+      Por isso o EHT funciona como um telescópio com o diâmetro do planeta.</p>
+    <p class="lead">O volume era tão grande (cerca de 350 terabytes por dia em cada telescópio) que os discos
+      rígidos foram levados de avião até os centros de processamento, mais rápido do que pela internet.</p>
+    <div class="globe-wrap">
+      <canvas id="globe" width="640" height="640"
+              data-land="{{ url_for('static', filename='m87/land.json') }}"
+              aria-label="Globo com os oito observatórios do EHT em 2017"></canvas>
       <div>
-        <strong>HTTPS com redirecionamento</strong>
-        <p>Todo acesso HTTP é redirecionado (301) para HTTPS; certificado Let's Encrypt emitido para o IP; HSTS ativo.</p>
+        <ul class="obs-list" id="obs-list" aria-label="Observatórios de 2017"></ul>
+        <div class="info" id="info" aria-live="polite">Clique em um observatório no globo ou na lista. Arraste o globo para girar.</div>
       </div>
-    </li>
-    <li>
-      <span class="tag">PQC</span>
+    </div>
+  </section>
+
+  <section id="pessoas" class="people">
+    <div>
+      <span class="tag">05 · As pessoas</span>
+      <h2>Mais de 200 cientistas</h2>
+      <p class="lead">A imagem de 2019 foi resultado do trabalho de mais de 200 pesquisadores, de dezenas de
+        instituições em vários países.</p>
+      <p class="lead"><strong>Katie Bouman</strong>, então doutoranda no MIT, liderou a criação do CHIRP, um dos
+        algoritmos de reconstrução de imagem, e ajudou a testar e validar os resultados. Para evitar viés, equipes separadas
+        reconstruíram a imagem de forma independente, sem trocar informações, e chegaram ao mesmo anel.</p>
+      <blockquote>Nenhum algoritmo ou pessoa fez esta imagem sozinho. Foi uma colaboração.</blockquote>
+    </div>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+  </section>
+
+  <section id="laboratorio">
+    <span class="tag">06 · Laboratório</span>
+    <h2>Mude a massa, mude a sombra</h2>
+    <div class="lab">
+      <canvas id="lab" width="500" height="500" aria-hidden="true"></canvas>
       <div>
-        <strong>Criptografia pós-quântica</strong>
-        <p>Troca de chaves híbrida X25519MLKEM768 negociada em TLS 1.3.</p>
+        <label for="massa">Massa do buraco negro</label>
+        <input id="massa" type="range" min="0" max="1000" value="1000" step="1">
+        <dl class="readout">
+          <dt>Massa</dt><dd id="ro-massa">—</dd>
+          <dt>Raio do horizonte</dt><dd id="ro-raio">—</dd>
+          <dt>Comparação</dt><dd id="ro-comp">—</dd>
+        </dl>
+        <p class="small">O raio do horizonte de eventos é proporcional à massa: R<sub>s</sub> = 2GM/c².
+          Dobrar a massa dobra o tamanho do horizonte.</p>
       </div>
-    </li>
-    <li>
-      <span class="tag">SSH</span>
-      <div>
-        <strong>Acesso remoto protegido</strong>
-        <p>SSH somente por chave, sem senha; Fail2Ban bane por 24 horas após 4 erros.</p>
-      </div>
-    </li>
-  </ul>
-</section>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">{{ logout_form() }}</footer>
 {% endblock %}

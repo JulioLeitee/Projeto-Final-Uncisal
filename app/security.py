@@ -28,11 +28,17 @@ log = logging.getLogger("app.security")
 # Cabeçalhos de segurança aplicados a TODA resposta via @app.after_request.
 # ---------------------------------------------------------------------------
 
-# CSP sem 'unsafe-inline': todo CSS vive em /static/style.css e não há JS.
+# CSP sem 'unsafe-inline' e sem 'unsafe-eval': CSS e JS só de arquivos do
+# próprio servidor (/static). Nada inline, nada de CDN ou site de terceiros.
+#   script-src/connect-src 'self' -> /static/m87/m87.js e o mapa land.json
+#   media-src 'self'              -> vídeo MP4 hospedado em /static
 CONTENT_SECURITY_POLICY = (
     "default-src 'none'; "
+    "script-src 'self'; "
     "style-src 'self'; "
     "img-src 'self'; "
+    "media-src 'self'; "
+    "connect-src 'self'; "
     "form-action 'self'; "
     "frame-ancestors 'none'; "
     "base-uri 'none'"

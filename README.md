@@ -112,7 +112,9 @@ aplicação se recusa a subir em estado inseguro.
 - **Sem usuários carregados, sem serviço** (`fail closed`).
 - **`debug` jamais habilitado**; nenhuma variável de ambiente liga o depurador.
 - **Cabeçalhos de segurança em toda resposta** (`security.py` → `SECURITY_HEADERS`):
-  CSP sem `unsafe-inline` (todo CSS é externo e não há JavaScript),
+  CSP restritiva: `default-src 'none'` e apenas `'self'` para script, estilo,
+  imagem, mídia e `connect`. Sem `unsafe-inline`, sem `unsafe-eval` e sem
+  nenhum host externo (todo CSS, JS, foto e vídeo vêm de `/static`),
   `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`,
   `Permissions-Policy`, `Cache-Control: no-store`.
 - **HSTS** de 1 ano emitido pelo Nginx.
@@ -125,7 +127,8 @@ aplicação se recusa a subir em estado inseguro.
 - **`unattended-upgrades`** aplicando patches de segurança sozinho.
 
 **Testes:** `test_headers_de_seguranca_presentes` (parametrizado),
-`test_csp_sem_unsafe_inline`, `test_app_nao_sobe_sem_secret_key`.
+`test_csp_sem_unsafe_inline` (também barra `unsafe-eval` e qualquer host externo),
+`test_pagina_interna_sem_codigo_inline`, `test_app_nao_sobe_sem_secret_key`.
 
 ---
 
@@ -138,8 +141,10 @@ A aplicação não usa SQL nem shell, o que elimina duas famílias inteiras por
   Qualquer coisa fora disso é rejeitada antes de virar chave de dicionário,
   entrar em log ou ser renderizada (`security.py` → `validate_username`).
 - **XSS**: o Jinja2 escapa automaticamente toda variável de template, e a CSP
-  `script-src` inexistente (`default-src 'none'`) impede execução de script
-  mesmo que um escape falhe — defesa em profundidade.
+  `script-src 'self'` só executa o arquivo `/static/m87/m87.js` do próprio
+  servidor: script inline ou injetado é bloqueado pelo navegador mesmo que um
+  escape falhe — defesa em profundidade. O JS não usa `eval` nem insere HTML
+  a partir de dados.
 - **Log injection**: `safe_for_log()` remove CR/LF antes de qualquer `log.warning`,
   impedindo que um usuário forje linhas falsas no journal.
 - **Path traversal**: nenhum caminho de arquivo é montado a partir de entrada
@@ -313,7 +318,7 @@ Estrutura mínima exigida, integralmente implementada:
 | Requisito | Rota | Arquivo |
 |---|---|---|
 | Tela de login | `GET/POST /login` | `app/templates/login.html` |
-| Página interna | `GET /dashboard` | `app/templates/dashboard.html` |
+| Página interna | `GET /dashboard` | `app/templates/dashboard.html` (landing page sobre a primeira foto de um buraco negro, M87*), `app/static/m87/` |
 | Logout funcional | `POST /logout` | `app/app.py` |
 
 Sem banco de dados (o escopo não exige): as credenciais ficam num JSON com
@@ -447,3 +452,11 @@ mais do que fingir que ele não existe.
 - [Qualys SSL Labs — SSL Server Test](https://www.ssllabs.com/ssltest/) (para entrega por domínio)
 - [DigiCert — TLS quantum readiness check](https://www.digicert.com/)
 - [SSL.org — SSL Certificate Checker](https://www.ssl.org/)
+
+### Créditos de imagens e vídeo da página interna
+
+A foto da M87* (2019), as imagens em luz polarizada (2021 e a comparação
+2017/2018/2021, divulgada em 16/09/2025) e a simulação de um ano da M87* são da
+**EHT Collaboration** (as imagens de 2019 e 2021 também distribuídas pelo ESO,
+licença CC BY 4.0). Uso educacional, sem fins comerciais, com crédito exibido
+junto de cada imagem e vídeo na página.
