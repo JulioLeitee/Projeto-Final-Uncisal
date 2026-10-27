@@ -1,10 +1,3 @@
-# =============================================================================
-# Eixo 2 — Prevenção de vazamento de dados.
-# O escopo prevê PENALIDADE IMEDIATA por credencial real commitada.
-# Regra prática: se o arquivo contém um segredo, o nome dele entra aqui ANTES
-# do primeiro `git add`.
-# =============================================================================
-
 # --- Segredos e configuração de ambiente ------------------------------------
 .env
 .env.*
