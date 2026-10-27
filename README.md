@@ -6,7 +6,7 @@ ambiente de desenvolvimento até a produção em nuvem.
 
 | | |
 |---|---|
-| **Aplicação em produção** | `https://SEU_IP_PUBLICO/` |
+| **Aplicação em produção** | `https://163.176.83.64/login` |
 | **Repositório** | `https://github.com/JulioLeitee/Projeto-Final-Uncisal` |
 | **Nuvem** | Oracle Cloud Infrastructure — *Always Free* |
 | **Sistema operacional** | Ubuntu Server 26.04 LTS (OpenSSL 3.5) |
